@@ -29,5 +29,7 @@ import java.util.List;
  */
 public interface IOrdersCreateService extends IService<Orders> {
 
+    PlaceOrderResDTO placeOrder(PlaceOrderReqDTO placeOrderReqDTO);
 
+    void add(Orders orders);
 }
