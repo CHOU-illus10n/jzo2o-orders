@@ -62,4 +62,26 @@ public class ConsumerOrdersController {
         PlaceOrderResDTO placeOrderResDTO = ordersCreateService.placeOrder(placeOrderReqDTO);
         return placeOrderResDTO;
     }
+
+    @PutMapping("/pay/{id}")
+    @ApiOperation("订单支付")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id", value = "订单id", required = true, dataTypeClass = Long.class)
+    })
+    public OrdersPayResDTO pay(@PathVariable("id") Long id, @RequestBody OrdersPayReqDTO ordersPayReqDTO) {
+        OrdersPayResDTO payResDTO = ordersCreateService.pay(id, ordersPayReqDTO);
+        return payResDTO;
+    }
+
+    @GetMapping("/pay/{id}/result")
+    @ApiOperation("查询订单支付结果")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id", value = "订单id", required = true, dataTypeClass = Long.class)
+    })
+    public OrdersPayResDTO payResult(@PathVariable("id") Long id) {
+        OrdersPayResDTO payResultFromTradServer = ordersCreateService.getPayResultFromTradServer(id);
+
+        return payResultFromTradServer;
+    }
+
 }
