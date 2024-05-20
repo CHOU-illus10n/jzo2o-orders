@@ -3,6 +3,7 @@ package com.jzo2o.orders.manager.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.db.DbRuntimeException;
+import cn.hutool.db.sql.Order;
 import com.baomidou.mybatisplus.core.injector.methods.SelectById;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jzo2o.api.customer.AddressBookApi;
@@ -29,11 +30,16 @@ import com.jzo2o.orders.base.enums.OrderPayStatusEnum;
 import com.jzo2o.orders.base.enums.OrderStatusEnum;
 import com.jzo2o.orders.base.mapper.OrdersMapper;
 import com.jzo2o.orders.base.model.domain.Orders;
+import com.jzo2o.orders.base.model.domain.OrdersCanceled;
+import com.jzo2o.orders.base.model.dto.OrderUpdateStatusDTO;
+import com.jzo2o.orders.base.service.IOrdersCommonService;
+import com.jzo2o.orders.manager.model.dto.OrderCancelDTO;
 import com.jzo2o.orders.manager.model.dto.request.OrdersPayReqDTO;
 import com.jzo2o.orders.manager.model.dto.request.PlaceOrderReqDTO;
 import com.jzo2o.orders.manager.model.dto.response.OrdersPayResDTO;
 import com.jzo2o.orders.manager.model.dto.response.PlaceOrderResDTO;
 import com.jzo2o.orders.manager.porperties.TradeProperties;
+import com.jzo2o.orders.manager.service.IOrdersCanceledService;
 import com.jzo2o.orders.manager.service.IOrdersCreateService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -44,6 +50,7 @@ import javax.annotation.Resource;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static com.jzo2o.common.constants.ErrorInfo.Code.TRADE_FAILED;
 import static com.jzo2o.orders.base.constants.RedisConstants.Lock.ORDERS_SHARD_KEY_ID_GENERATOR;
@@ -74,6 +81,7 @@ public class OrdersCreateServiceImpl extends ServiceImpl<OrdersMapper, Orders> i
     private NativePayApi nativePayApi;
     @Resource
     private TradingApi tradingApi;
+
 
     /**
      * 生成订单id {yyMMdd}{13位id}
@@ -263,6 +271,17 @@ public class OrdersCreateServiceImpl extends ServiceImpl<OrdersMapper, Orders> i
         }
 
     }
+
+    @Override
+    public List<Orders> queryOverTimePayOrdersListByCount(Integer count) {
+        List<Orders> orders = lambdaQuery()
+                .eq(Orders::getPayStatus, OrderPayStatusEnum.NO_PAY.getStatus())
+                .lt(Orders::getCreateTime,LocalDateTime.now().minusMinutes(15))
+                .last("limit "+count)
+                .list();
+        return orders;
+    }
+
 
     private NativePayResDTO generateQrCode(Orders orders, PayChannelEnum tradingChannel) {
         //判断支付渠道

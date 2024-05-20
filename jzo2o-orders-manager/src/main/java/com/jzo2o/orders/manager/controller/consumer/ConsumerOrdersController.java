@@ -6,6 +6,7 @@ import com.jzo2o.api.orders.dto.request.OrderCancelReqDTO;
 import com.jzo2o.api.orders.dto.response.OrderResDTO;
 import com.jzo2o.api.orders.dto.response.OrderSimpleResDTO;
 import com.jzo2o.common.model.CurrentUserInfo;
+import com.jzo2o.common.utils.BeanUtils;
 import com.jzo2o.mvc.utils.UserContext;
 import com.jzo2o.orders.manager.model.dto.OrderCancelDTO;
 import com.jzo2o.orders.manager.model.dto.request.OrdersPayReqDTO;
@@ -84,4 +85,16 @@ public class ConsumerOrdersController {
         return payResultFromTradServer;
     }
 
+    /**
+     * 取消订单
+     */
+    @PutMapping("/cancel")
+    @ApiOperation("取消订单")
+    public void cancel(@RequestBody OrderCancelReqDTO orderCancelReqDTO) {
+        OrderCancelDTO bean = BeanUtils.toBean(orderCancelReqDTO, OrderCancelDTO.class);
+        bean.setCurrentUserId(UserContext.currentUser().getId());
+        bean.setCurrentUserName(UserContext.currentUser().getName());
+        bean.setCurrentUserType(UserContext.currentUser().getUserType());
+        ordersManagerService.cancel(bean);
+    }
 }
