@@ -10,6 +10,10 @@ import com.jzo2o.api.customer.AddressBookApi;
 import com.jzo2o.api.customer.dto.response.AddressBookResDTO;
 import com.jzo2o.api.foundations.ServeApi;
 import com.jzo2o.api.foundations.dto.response.ServeAggregationResDTO;
+import com.jzo2o.api.market.CouponApi;
+import com.jzo2o.api.market.dto.request.CouponUseReqDTO;
+import com.jzo2o.api.market.dto.response.AvailableCouponsResDTO;
+import com.jzo2o.api.market.dto.response.CouponUseResDTO;
 import com.jzo2o.api.trade.NativePayApi;
 import com.jzo2o.api.trade.TradingApi;
 import com.jzo2o.api.trade.dto.request.NativePayReqDTO;
@@ -25,12 +29,15 @@ import com.jzo2o.common.utils.DateUtils;
 import com.jzo2o.common.utils.NumberUtils;
 import com.jzo2o.common.utils.ObjectUtils;
 import com.jzo2o.mvc.utils.UserContext;
+import com.jzo2o.orders.base.config.OrderStateMachine;
 import com.jzo2o.orders.base.constants.RedisConstants;
 import com.jzo2o.orders.base.enums.OrderPayStatusEnum;
 import com.jzo2o.orders.base.enums.OrderStatusEnum;
 import com.jzo2o.orders.base.mapper.OrdersMapper;
 import com.jzo2o.orders.base.model.domain.Orders;
 import com.jzo2o.orders.base.model.domain.OrdersCanceled;
+import com.jzo2o.orders.base.model.domain.OrdersRefund;
+import com.jzo2o.orders.base.model.dto.OrderSnapshotDTO;
 import com.jzo2o.orders.base.model.dto.OrderUpdateStatusDTO;
 import com.jzo2o.orders.base.service.IOrdersCommonService;
 import com.jzo2o.orders.manager.model.dto.OrderCancelDTO;
@@ -81,7 +88,10 @@ public class OrdersCreateServiceImpl extends ServiceImpl<OrdersMapper, Orders> i
     private NativePayApi nativePayApi;
     @Resource
     private TradingApi tradingApi;
-
+    @Resource
+    private OrderStateMachine orderStateMachine;
+    @Resource
+    private CouponApi couponApi;
 
     /**
      * 生成订单id {yyMMdd}{13位id}
@@ -90,6 +100,34 @@ public class OrdersCreateServiceImpl extends ServiceImpl<OrdersMapper, Orders> i
     private Long generateOrderId(){
         Long id = redisTemplate.opsForValue().increment(ORDERS_SHARD_KEY_ID_GENERATOR, 1);
         return DateUtils.getFormatDate(LocalDateTime.now(), "yyMMdd") * 10000000000000L + id;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void addWithCoupon(Orders orders, Long couponId) {
+        CouponUseReqDTO couponUseReqDTO = new CouponUseReqDTO();
+        couponUseReqDTO.setOrdersId(orders.getId());
+        couponUseReqDTO.setId(couponId);
+        couponUseReqDTO.setTotalAmount(orders.getTotalAmount());
+        CouponUseResDTO couponUseResDTO = couponApi.use(couponUseReqDTO);
+        orders.setDiscountAmount(couponUseResDTO.getDiscountAmount());
+        BigDecimal realPay = orders.getTotalAmount().subtract(couponUseResDTO.getDiscountAmount());
+        orders.setRealPayAmount(realPay);
+        //保存订单
+        add(orders);
+    }
+
+    @Override
+    public List<AvailableCouponsResDTO> getAvailableCoupons(Long serveId, Integer purNum) {
+        //获取服务
+        ServeAggregationResDTO serveAggregationResDTO = serveApi.findById(serveId);
+        if(serveAggregationResDTO == null || serveAggregationResDTO.getSaleStatus() !=2){
+            throw new BadRequestException("服务不可用");
+        }
+        //计算订单总金额
+        BigDecimal totalAmount = serveAggregationResDTO.getPrice().multiply(new BigDecimal(purNum));
+        List<AvailableCouponsResDTO> available = couponApi.getAvailable(totalAmount);
+        return available;
     }
 
     @Override
@@ -159,7 +197,12 @@ public class OrdersCreateServiceImpl extends ServiceImpl<OrdersMapper, Orders> i
         long sortBy = DateUtils.toEpochMilli(orders.getServeStartTime()) + orders.getId() % 100000;
         orders.setSortBy(sortBy);
         //保存订单
-        owner.add(orders);
+        if(ObjectUtils.isNotNull(placeOrderReqDTO.getCouponId())){
+            owner.addWithCoupon(orders, placeOrderReqDTO.getCouponId());
+        }else{
+            owner.add(orders);
+        }
+
 
         return new PlaceOrderResDTO(orders.getId());
     }
@@ -170,6 +213,10 @@ public class OrdersCreateServiceImpl extends ServiceImpl<OrdersMapper, Orders> i
         if (!save) {
             throw new DbRuntimeException("下单失败");
         }
+        //构建快照对象
+        OrderSnapshotDTO orderSnapshotDTO = BeanUtil.toBean(baseMapper.selectById(orders.getId()), OrderSnapshotDTO.class);
+        //状态机启动
+        orderStateMachine.start(null,String.valueOf(orders.getId()),orderSnapshotDTO);
     }
 
     @Override

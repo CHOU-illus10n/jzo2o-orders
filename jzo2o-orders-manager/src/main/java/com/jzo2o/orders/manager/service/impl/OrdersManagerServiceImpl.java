@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.db.DbRuntimeException;
 import cn.hutool.json.JSONUtil;
+import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -16,6 +17,7 @@ import com.jzo2o.common.enums.EnableStatusEnum;
 import com.jzo2o.common.expcetions.CommonException;
 import com.jzo2o.common.utils.BeanUtils;
 import com.jzo2o.common.utils.ObjectUtils;
+import com.jzo2o.orders.base.config.OrderStateMachine;
 import com.jzo2o.orders.base.enums.OrderPayStatusEnum;
 import com.jzo2o.orders.base.enums.OrderRefundStatusEnum;
 import com.jzo2o.orders.base.enums.OrderStatusEnum;
@@ -26,6 +28,7 @@ import com.jzo2o.orders.base.model.domain.OrdersRefund;
 import com.jzo2o.orders.base.model.dto.OrderSnapshotDTO;
 import com.jzo2o.orders.base.model.dto.OrderUpdateStatusDTO;
 import com.jzo2o.orders.base.service.IOrdersCommonService;
+import com.jzo2o.orders.manager.handler.OrdersHandler;
 import com.jzo2o.orders.manager.model.dto.OrderCancelDTO;
 import com.jzo2o.orders.manager.model.dto.response.OrdersPayResDTO;
 import com.jzo2o.orders.manager.service.IOrdersCanceledService;
@@ -65,6 +68,10 @@ public class OrdersManagerServiceImpl extends ServiceImpl<OrdersMapper, Orders> 
     private IOrdersCreateService ordersCreateService;
     @Resource
     private IOrdersRefundService ordersRefundService;
+    @Resource
+    private OrdersHandler ordersHandler;
+    @Resource
+    private OrderStateMachine orderStateMachine;
 
     @Override
     public List<Orders> batchQuery(List<Long> ids) {
@@ -113,6 +120,8 @@ public class OrdersManagerServiceImpl extends ServiceImpl<OrdersMapper, Orders> 
     @Override
     public OrderResDTO getDetail(Long id) {
         Orders orders = queryById(id);
+        String currentSnapshotCache = orderStateMachine.getCurrentSnapshotCache(id.toString());
+        OrderSnapshotDTO orderSnapshotDTO = JSON.parseObject(currentSnapshotCache, OrderSnapshotDTO.class);
         //如果超时则取消订单 重新构造取消后的订单
         orders = canalIfPayOvertime(orders);
         OrderResDTO orderResDTO = BeanUtil.toBean(orders, OrderResDTO.class);
@@ -175,6 +184,8 @@ public class OrdersManagerServiceImpl extends ServiceImpl<OrdersMapper, Orders> 
             owener.cancelByNoPay(orderCancelDTO);
         } else if(OrderStatusEnum.DISPATCHING.getStatus()==ordersStatus){ //订单状态为派单中
             owener.cancelByDispatching(orderCancelDTO);
+            //新启动一个线程请求退款
+            ordersHandler.requestRefundNewThread(orders.getId());
         }else{
             throw new CommonException("当前订单状态不支持取消");
         }

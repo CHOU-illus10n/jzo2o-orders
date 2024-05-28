@@ -29,6 +29,22 @@ import java.util.List;
  */
 public interface IOrdersCreateService extends IService<Orders> {
 
+    /**
+     * 使用优惠券下单
+     * @param orders 订单信息
+     * @param couponId 优惠券id
+     */
+    public void addWithCoupon(Orders orders, Long couponId);
+    /**
+     * 获取可用优惠券
+     *
+     * @param serveId 服务id
+     * @param purNum  购买数量
+     * @return 可用优惠券列表
+     */
+    List<AvailableCouponsResDTO> getAvailableCoupons(Long serveId, Integer purNum);
+
+
     PlaceOrderResDTO placeOrder(PlaceOrderReqDTO placeOrderReqDTO);
 
     void add(Orders orders);

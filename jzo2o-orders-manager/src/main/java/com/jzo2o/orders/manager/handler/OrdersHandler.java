@@ -116,6 +116,19 @@ public class OrdersHandler {
             //非退款中状态，删除申请退款记录，删除后定时任务不再扫描
             ordersRefundService.removeById(ordersRefund.getId());
         }
+    }
 
+
+    /**
+     * 新启动一个线程请求退款
+     * @param ordersRefundId
+     */
+    public void requestRefundNewThread(Long ordersRefundId){
+        new Thread(()->{
+            OrdersRefund ordersRefund = ordersRefundService.getById(ordersRefundId);
+            if(ObjectUtil.isNotNull(ordersRefund)) {
+                requestRefundOrder(ordersRefund);
+            }
+        }).start();
     }
 }
