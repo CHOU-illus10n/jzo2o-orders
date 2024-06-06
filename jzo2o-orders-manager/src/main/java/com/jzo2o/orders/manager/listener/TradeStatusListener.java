@@ -3,11 +3,11 @@ package com.jzo2o.orders.manager.listener;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.TypeReference;
 import cn.hutool.json.JSONUtil;
-import com.alibaba.fastjson.JSON;
 import com.jzo2o.api.trade.enums.TradingStateEnum;
 import com.jzo2o.common.constants.MqConstants;
 import com.jzo2o.common.model.msg.TradeStatusMsg;
 import com.jzo2o.orders.manager.service.IOrdersCreateService;
+import com.jzo2o.orders.manager.service.IOrdersManagerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -20,7 +20,7 @@ import javax.annotation.Resource;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
+import static com.jzo2o.orders.base.constants.OrderConstants.PRODUCT_APP_ID;
 
 /**
  * 监听mq消息，接收支付结果
@@ -46,11 +46,11 @@ public class TradeStatusListener {
     ))
     public void listenTradeUpdatePayStatusMsg(String msg) {
         log.info("接收到支付结果状态的消息 ({})-> {}", MqConstants.Queues.ORDERS_TRADE_UPDATE_STATUS, msg);
-        //将msg转为java对象
-        List<TradeStatusMsg> tradeStatusMsgs = JSON.parseArray(msg, TradeStatusMsg.class);
+        List<TradeStatusMsg> tradeStatusMsgList = JSONUtil.toBean(msg, new TypeReference<List<TradeStatusMsg>>() {
+        }, false);
 
         // 只处理家政服务的订单且是支付成功的
-        List<TradeStatusMsg> msgList = tradeStatusMsgs.stream().filter(v -> v.getStatusCode().equals(TradingStateEnum.YJS.getCode()) && "jzo2o.orders".equals(v.getProductAppId())).collect(Collectors.toList());
+        List<TradeStatusMsg> msgList = tradeStatusMsgList.stream().filter(v -> v.getStatusCode().equals(TradingStateEnum.YJS.getCode()) && PRODUCT_APP_ID.equals(v.getProductAppId())).collect(Collectors.toList());
         if (CollUtil.isEmpty(msgList)) {
             return;
         }

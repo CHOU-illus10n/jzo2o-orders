@@ -30,12 +30,6 @@ import java.util.List;
 public interface IOrdersCreateService extends IService<Orders> {
 
     /**
-     * 使用优惠券下单
-     * @param orders 订单信息
-     * @param couponId 优惠券id
-     */
-    public void addWithCoupon(Orders orders, Long couponId);
-    /**
      * 获取可用优惠券
      *
      * @param serveId 服务id
@@ -44,10 +38,55 @@ public interface IOrdersCreateService extends IService<Orders> {
      */
     List<AvailableCouponsResDTO> getAvailableCoupons(Long serveId, Integer purNum);
 
-
+    /**
+     * 下单
+     *
+     * @param placeOrderReqDTO
+     * @return
+     */
     PlaceOrderResDTO placeOrder(PlaceOrderReqDTO placeOrderReqDTO);
 
+    /**
+     * 更新支付状态
+     *
+     * @param id        订单id
+     * @param payStatus 支付状态
+     */
+    Boolean updatePayStatus(Long id, Integer payStatus);
+
+    /**
+     * 更新退款状态
+     *
+     * @param id           订单id
+     * @param refundStatus 退款状态
+     * @param refundId     第三方支付的退款单号
+     * @param refundNo     支付服务退款单号
+     */
+    Boolean updateRefundStatus(Long id, Integer refundStatus, String refundId, Long refundNo);
+
+
+
+    /**
+     * 生成订单
+     *
+     * @param orders
+     */
     void add(Orders orders);
+
+    /**
+     * 生成订单 使用优惠券
+     *
+     * @param orders   订单信息
+     * @param couponId 优惠券id
+     */
+    void addWithCoupon(Orders orders, Long couponId);
+
+    /**
+     * 支付成功， 其他信息暂且不填
+     *
+     * @param tradeStatusMsg 交易状态消息
+     */
+    void paySuccess(TradeStatusMsg tradeStatusMsg);
 
     /**
      * 订单支付
@@ -58,19 +97,15 @@ public interface IOrdersCreateService extends IService<Orders> {
      */
     OrdersPayResDTO pay(Long id, OrdersPayReqDTO ordersPayReqDTO);
 
+
+
     /**
      * 请求支付服务查询支付结果
      *
      * @param id 订单id
-     * @return 订单支付结果
+     * @return 订单支付响应体
      */
-    OrdersPayResDTO getPayResultFromTradServer(Long id);
-    /**
-     * 支付成功， 更新数据库的订单表及其他信息
-     *
-     * @param tradeStatusMsg 交易状态消息
-     */
-    void paySuccess(TradeStatusMsg tradeStatusMsg);
+    int getPayResultFromTradServer(Long id);
 
     /**
      * 查询超时订单id列表
@@ -78,5 +113,7 @@ public interface IOrdersCreateService extends IService<Orders> {
      * @param count 数量
      * @return 订单id列表
      */
-    public List<Orders> queryOverTimePayOrdersListByCount(Integer count);
+    List<Orders> queryOverTimePayOrdersListByCount(Integer count);
+
+
 }

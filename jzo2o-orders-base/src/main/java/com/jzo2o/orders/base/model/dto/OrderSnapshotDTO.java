@@ -1,7 +1,7 @@
 package com.jzo2o.orders.base.model.dto;
 
-//import com.jzo2o.statemachine.core.StateMachineSnapshot;
 import com.jzo2o.statemachine.core.StateMachineSnapshot;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -225,6 +225,7 @@ public class OrderSnapshotDTO extends StateMachineSnapshot {
      */
     private Integer evaluationStatus;
 
+
     @Override
     public String getSnapshotId() {
         return String.valueOf(id);
@@ -244,25 +245,4 @@ public class OrderSnapshotDTO extends StateMachineSnapshot {
     public void setSnapshotStatus(Integer snapshotStatus) {
         this.ordersStatus = snapshotStatus;
     }
-
-
-//    @Override
-//    public String getSnapshotId() {
-//        return String.valueOf(id);
-//    }
-//
-//    @Override
-//    public Integer getSnapshotStatus() {
-//        return ordersStatus;
-//    }
-//
-//    @Override
-//    public void setSnapshotId(String snapshotId) {
-//        this.id = Long.parseLong(snapshotId);
-//    }
-//
-//    @Override
-//    public void setSnapshotStatus(Integer snapshotStatus) {
-//        this.ordersStatus = snapshotStatus;
-//    }
 }

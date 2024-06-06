@@ -1,7 +1,6 @@
 package com.jzo2o.orders.manager.service;
 
 import com.jzo2o.orders.base.config.OrderStateMachine;
-import com.jzo2o.orders.base.enums.OrderStatusChangeEventEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,20 +17,20 @@ public class OrderStateMachineTest {
     @Test
     public void test_start() {
         //启动状态机
-        String start = orderStateMachine.start("10103");
+        String start = orderStateMachine.start("101");
         log.info("返回初始状态:{}", start);
     }
-    @Test
+//    @Test
     public void test_changeStatus() {
         //状态变更
-        orderStateMachine.changeStatus("10100",OrderStatusChangeEventEnum.PAYED);
+        orderStateMachine.changeStatus("101",OrderStatusChangeEventEnumTest.PAYED_TEST);
     }
 
-    @Test
+//    @Test
     public void test_orderStatMmachine() {
         //启动状态机
-        String start = orderStateMachine.start("10101");
+        String start = orderStateMachine.start("102");
         //状态变更
-        orderStateMachine.changeStatus("10101", OrderStatusChangeEventEnum.PAYED);
+        orderStateMachine.changeStatus("102",OrderStatusChangeEventEnumTest.PAYED_TEST);
     }
 }

@@ -6,6 +6,7 @@ import com.jzo2o.orders.base.enums.OrderStatusEnum;
 import com.jzo2o.orders.base.model.dto.OrderSnapshotDTO;
 import com.jzo2o.orders.base.model.dto.OrderUpdateStatusDTO;
 import com.jzo2o.orders.base.service.IOrdersCommonService;
+import com.jzo2o.statemachine.core.StateMachineSnapshot;
 import com.jzo2o.statemachine.core.StatusChangeEvent;
 import com.jzo2o.statemachine.core.StatusChangeHandler;
 import lombok.extern.slf4j.Slf4j;
